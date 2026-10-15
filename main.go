@@ -1,7 +1,17 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 func main() {
-	fmt.Println("Welcome to httpal!")
+	if len(os.Args) < 2 {
+		fmt.Println("Usage: httpal <url>")
+		return
+	}
+
+	url := os.Args[1]
+
+	fmt.Println("URL:", url)
 }
