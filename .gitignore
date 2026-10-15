@@ -1,0 +1,9 @@
+# Compiled Go binaries
+httpal
+httpal.exe
+
+# macOS files
+.DS_Store
+
+# VS Code settings
+.vscode/
