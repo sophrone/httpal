@@ -4,10 +4,17 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
-func makeRequest(method string, url string, headers []string) (string, *http.Response, error) {
-	req, err := http.NewRequest(method, url, nil)
+func makeRequest(method string, url string, headers []string, data string) (string, *http.Response, error) {
+	var body io.Reader
+
+	if data != "" {
+		body = strings.NewReader(data)
+	}
+
+	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return "", nil, err
 	}
@@ -31,12 +38,12 @@ func makeRequest(method string, url string, headers []string) (string, *http.Res
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", resp, err
 	}
 
-	return string(body), resp, nil
+	return string(responseBody), resp, nil
 }
 
 func printHeaders(resp *http.Response) {

@@ -20,8 +20,9 @@ func (h *headerFlags) Set(value string) error {
 func main() {
 	showInfo := flag.Bool("i", false, "show response status and headers")
 	method := flag.String("X", "GET", "HTTP method")
-	var headers headerFlags
+	data := flag.String("d", "", "request body")
 
+	var headers headerFlags
 	flag.Var(&headers, "H", "request header")
 
 	flag.Parse()
@@ -29,13 +30,16 @@ func main() {
 	args := flag.Args()
 
 	if len(args) < 1 {
-		fmt.Fprintln(os.Stderr, "Usage: httpal [-i] [-X method] [-H header] <url>")
+		fmt.Fprintln(
+			os.Stderr,
+			"Usage: httpal [-i] [-X method] [-H header] [-d data] <url>",
+		)
 		os.Exit(1)
 	}
 
 	url := args[0]
 
-	body, resp, err := makeRequest(*method, url, headers)
+	body, resp, err := makeRequest(*method, url, headers, *data)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Request failed:", err)
 		os.Exit(1)
