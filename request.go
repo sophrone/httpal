@@ -6,8 +6,26 @@ import (
 	"net/http"
 )
 
-func makeRequest(url string) (string, *http.Response, error) {
-	resp, err := http.Get(url)
+func makeRequest(method string, url string, headers []string) (string, *http.Response, error) {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return "", nil, err
+	}
+
+	for _, header := range headers {
+		var key, value string
+
+		_, err := fmt.Sscanf(header, "%[^:]: %[^\n]", &key, &value)
+		if err != nil {
+			return "", nil, fmt.Errorf("invalid header format: %q", header)
+		}
+
+		req.Header.Set(key, value)
+	}
+
+	client := &http.Client{}
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", nil, err
 	}
