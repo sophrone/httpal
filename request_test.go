@@ -1,40 +1,122 @@
 package main
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
 func TestMakeRequest(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			t.Errorf("expected GET request, got %s", r.Method)
-		}
-
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Hello from test server"))
-	}))
-	defer server.Close()
-
-	body, resp, err := makeRequest(server.URL)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+	testCases := []struct {
+		name           string
+		method         string
+		headers        []string
+		data           string
+		expectedMethod string
+		expectedHeader string
+		expectedBody   string
+	}{
+		{
+			name:           "GET request",
+			method:         "GET",
+			expectedMethod: "GET",
+			expectedBody:   "",
+		},
+		{
+			name:           "POST request with body",
+			method:         "POST",
+			data:           "hello from httpal",
+			expectedMethod: "POST",
+			expectedBody:   "hello from httpal",
+		},
+		{
+			name:           "request with custom header",
+			method:         "GET",
+			headers:        []string{"X-App-Name: httpal"},
+			expectedMethod: "GET",
+			expectedHeader: "httpal",
+		},
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		t.Errorf("expected status %d, got %d", http.StatusOK, resp.StatusCode)
-	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != testCase.expectedMethod {
+					t.Errorf(
+						"expected method %s, got %s",
+						testCase.expectedMethod,
+						r.Method,
+					)
+				}
 
-	expectedBody := "Hello from test server"
+				if testCase.expectedHeader != "" {
+					gotHeader := r.Header.Get("X-App-Name")
 
-	if body != expectedBody {
-		t.Errorf("expected body %q, got %q", expectedBody, body)
+					if gotHeader != testCase.expectedHeader {
+						t.Errorf(
+							"expected header %q, got %q",
+							testCase.expectedHeader,
+							gotHeader,
+						)
+					}
+				}
+
+				requestBody, err := io.ReadAll(r.Body)
+				if err != nil {
+					t.Fatalf("could not read request body: %v", err)
+				}
+
+				if string(requestBody) != testCase.expectedBody {
+					t.Errorf(
+						"expected request body %q, got %q",
+						testCase.expectedBody,
+						string(requestBody),
+					)
+				}
+
+				w.WriteHeader(http.StatusOK)
+				w.Write([]byte("test response"))
+			}))
+			defer server.Close()
+
+			body, resp, err := makeRequest(
+				testCase.method,
+				server.URL,
+				testCase.headers,
+				testCase.data,
+			)
+
+			if err != nil {
+				t.Fatalf("expected no error, got %v", err)
+			}
+
+			if resp.StatusCode != http.StatusOK {
+				t.Errorf(
+					"expected status %d, got %d",
+					http.StatusOK,
+					resp.StatusCode,
+				)
+			}
+
+			if body != "test response" {
+				t.Errorf(
+					"expected response body %q, got %q",
+					"test response",
+					body,
+				)
+			}
+		})
 	}
 }
 
 func TestMakeRequestInvalidURL(t *testing.T) {
-	_, _, err := makeRequest("://invalid-url")
+	_, _, err := makeRequest(
+		"GET",
+		"://invalid-url",
+		nil,
+		"",
+	)
 
 	if err == nil {
 		t.Fatal("expected an error, got nil")
@@ -47,12 +129,16 @@ func TestMakeRequestNotFound(t *testing.T) {
 	}))
 	defer server.Close()
 
-	_, resp, err := makeRequest(server.URL)
+	_, resp, err := makeRequest("GET", server.URL, nil, "")
 	if err != nil {
 		t.Fatalf("expected no request error, got %v", err)
 	}
 
 	if resp.StatusCode != http.StatusNotFound {
-		t.Errorf("expected status %d, got %d", http.StatusNotFound, resp.StatusCode)
+		t.Errorf(
+			"expected status %d, got %d",
+			http.StatusNotFound,
+			resp.StatusCode,
+		)
 	}
 }
