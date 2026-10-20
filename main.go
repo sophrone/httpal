@@ -23,6 +23,7 @@ func main() {
 	method := flag.String("X", "GET", "HTTP method")
 	data := flag.String("d", "", "request body")
 	dataFile := flag.String("f", "", "read request body from file")
+	outputFile := flag.String("o", "", "write response body to file")
 	timeout := flag.Duration("timeout", 10*time.Second, "request timeout")
 
 	var headers headerFlags
@@ -35,7 +36,7 @@ func main() {
 	if len(args) < 1 {
 		fmt.Fprintln(
 			os.Stderr,
-			"Usage: httpal [-i] [-X method] [-H header] [-d data] [-f file] [-timeout duration] <url>",
+			"Usage: httpal [-i] [-X method] [-H header] [-d data] [-f file] [-o file] [-timeout duration] <url>",
 		)
 		os.Exit(1)
 	}
@@ -57,11 +58,9 @@ func main() {
 		requestData = string(fileData)
 	}
 
-	url := args[0]
-
 	body, resp, err := makeRequest(
 		*method,
-		url,
+		args[0],
 		headers,
 		requestData,
 		*timeout,
@@ -78,6 +77,21 @@ func main() {
 	if resp.StatusCode >= 400 {
 		fmt.Fprintln(os.Stderr, "HTTP error:", resp.Status)
 		os.Exit(1)
+	}
+
+	if *outputFile != "" {
+		err := os.WriteFile(
+			*outputFile,
+			[]byte(body),
+			0644,
+		)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Could not write output file:", err)
+			os.Exit(1)
+		}
+
+		fmt.Printf("Response saved to %s\n", *outputFile)
+		return
 	}
 
 	fmt.Print(body)
