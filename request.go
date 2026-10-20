@@ -5,9 +5,16 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 )
 
-func makeRequest(method string, url string, headers []string, data string) (string, *http.Response, error) {
+func makeRequest(
+	method string,
+	url string,
+	headers []string,
+	data string,
+	timeout time.Duration,
+) (string, *http.Response, error) {
 	var body io.Reader
 
 	if data != "" {
@@ -20,17 +27,25 @@ func makeRequest(method string, url string, headers []string, data string) (stri
 	}
 
 	for _, header := range headers {
-		var key, value string
+		parts := strings.SplitN(header, ":", 2)
 
-		_, err := fmt.Sscanf(header, "%[^:]: %[^\n]", &key, &value)
-		if err != nil {
+		if len(parts) != 2 {
 			return "", nil, fmt.Errorf("invalid header format: %q", header)
+		}
+
+		key := strings.TrimSpace(parts[0])
+		value := strings.TrimSpace(parts[1])
+
+		if key == "" {
+			return "", nil, fmt.Errorf("header name cannot be empty")
 		}
 
 		req.Header.Set(key, value)
 	}
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: timeout,
+	}
 
 	resp, err := client.Do(req)
 	if err != nil {

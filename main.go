@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 )
 
 type headerFlags []string
@@ -21,6 +22,7 @@ func main() {
 	showInfo := flag.Bool("i", false, "show response status and headers")
 	method := flag.String("X", "GET", "HTTP method")
 	data := flag.String("d", "", "request body")
+	timeout := flag.Duration("timeout", 10*time.Second, "request timeout")
 
 	var headers headerFlags
 	flag.Var(&headers, "H", "request header")
@@ -32,14 +34,20 @@ func main() {
 	if len(args) < 1 {
 		fmt.Fprintln(
 			os.Stderr,
-			"Usage: httpal [-i] [-X method] [-H header] [-d data] <url>",
+			"Usage: httpal [-i] [-X method] [-H header] [-d data] [-timeout duration] <url>",
 		)
 		os.Exit(1)
 	}
 
 	url := args[0]
 
-	body, resp, err := makeRequest(*method, url, headers, *data)
+	body, resp, err := makeRequest(
+		*method,
+		url,
+		headers,
+		*data,
+		*timeout,
+	)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "Request failed:", err)
 		os.Exit(1)

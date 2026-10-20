@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 func TestMakeRequest(t *testing.T) {
@@ -76,7 +77,7 @@ func TestMakeRequest(t *testing.T) {
 				}
 
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("test response"))
+				_, _ = w.Write([]byte("test response"))
 			}))
 			defer server.Close()
 
@@ -85,6 +86,7 @@ func TestMakeRequest(t *testing.T) {
 				server.URL,
 				testCase.headers,
 				testCase.data,
+				5*time.Second,
 			)
 
 			if err != nil {
@@ -116,6 +118,7 @@ func TestMakeRequestInvalidURL(t *testing.T) {
 		"://invalid-url",
 		nil,
 		"",
+		5*time.Second,
 	)
 
 	if err == nil {
@@ -129,7 +132,14 @@ func TestMakeRequestNotFound(t *testing.T) {
 	}))
 	defer server.Close()
 
-	_, resp, err := makeRequest("GET", server.URL, nil, "")
+	_, resp, err := makeRequest(
+		"GET",
+		server.URL,
+		nil,
+		"",
+		5*time.Second,
+	)
+
 	if err != nil {
 		t.Fatalf("expected no request error, got %v", err)
 	}
