@@ -7,3 +7,6 @@ httpal.exe
 
 # VS Code settings
 .vscode/
+
+# Local request payloads
+payload.json

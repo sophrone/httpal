@@ -22,6 +22,7 @@ func main() {
 	showInfo := flag.Bool("i", false, "show response status and headers")
 	method := flag.String("X", "GET", "HTTP method")
 	data := flag.String("d", "", "request body")
+	dataFile := flag.String("f", "", "read request body from file")
 	timeout := flag.Duration("timeout", 10*time.Second, "request timeout")
 
 	var headers headerFlags
@@ -34,9 +35,26 @@ func main() {
 	if len(args) < 1 {
 		fmt.Fprintln(
 			os.Stderr,
-			"Usage: httpal [-i] [-X method] [-H header] [-d data] [-timeout duration] <url>",
+			"Usage: httpal [-i] [-X method] [-H header] [-d data] [-f file] [-timeout duration] <url>",
 		)
 		os.Exit(1)
+	}
+
+	if *data != "" && *dataFile != "" {
+		fmt.Fprintln(os.Stderr, "Error: use either -d or -f, not both")
+		os.Exit(1)
+	}
+
+	requestData := *data
+
+	if *dataFile != "" {
+		fileData, err := os.ReadFile(*dataFile)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Could not read body file:", err)
+			os.Exit(1)
+		}
+
+		requestData = string(fileData)
 	}
 
 	url := args[0]
@@ -45,7 +63,7 @@ func main() {
 		*method,
 		url,
 		headers,
-		*data,
+		requestData,
 		*timeout,
 	)
 	if err != nil {
